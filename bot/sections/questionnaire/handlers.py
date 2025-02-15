@@ -155,6 +155,8 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=wish_text,
+            parse_mode="MarkdownV2",
+            reply_markup=keyboards.again
         )
     except Exception as e:
         print(e)
