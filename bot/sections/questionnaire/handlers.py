@@ -10,11 +10,13 @@ router = Router()
 from config import Config
 from google import genai
 
+
 class Question:
     def __init__(self, question_id: str, question: str, answer: str = None):
         self.question_id = question_id
         self.question_text = question
         self.answer_text = answer
+
 
 async def generate_wish(questions: List[Question]) -> (str, str):
     """Generate personalized greeting using Gemini API."""
@@ -58,6 +60,7 @@ async def generate_wish(questions: List[Question]) -> (str, str):
         return prompt, response.text
     except Exception as e:
         return prompt, f"На жаль, сталася помилка при генерації привітання. Спробуйте ще раз пізніше. Помилка: {str(e)}"
+
 
 # Визначаємо стани як клас
 class QuestionnaireStates(StatesGroup):
@@ -140,13 +143,17 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
     prompt, wish_text = await generate_wish(questions)
 
     await message.answer(
-        wish_text,
+        text=wish_text,
+        parse_mode="MarkdownV2",
+        reply_markup=keyboards.again
     )
 
     try:
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=prompt,
+            parse_mode="MarkdownV2",
+
         )
     except Exception as e:
         print(e)
@@ -156,9 +163,7 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
             chat_id=str(Config.ADMIN_TG_ID),
             text=wish_text,
             parse_mode="MarkdownV2",
-            reply_markup=keyboards.again
+
         )
     except Exception as e:
         print(e)
-
-
