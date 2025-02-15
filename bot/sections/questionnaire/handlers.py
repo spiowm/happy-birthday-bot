@@ -169,16 +169,29 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=prompt,
-
+            parse_mode="Markdown",
         )
-    except Exception as e:
-        print(e)
+    except TelegramBadRequest as e:
+        await message.answer(
+            text='щось пішло не так і текст надішлеться без форматування(',
+        )
+        await bot.send_message(
+            chat_id=str(Config.ADMIN_TG_ID),
+            text=prompt,
+        )
 
     try:
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=wish_text,
-
+            parse_mode="Markdown",
         )
-    except Exception as e:
-        print(e)
+    except TelegramBadRequest as e:
+        await message.answer(
+            text='щось пішло не так і текст надішлеться без форматування(',
+            reply_markup=keyboards.again
+        )
+        await bot.send_message(
+            chat_id=str(Config.ADMIN_TG_ID),
+            text=wish_text,
+        )
