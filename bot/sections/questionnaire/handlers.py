@@ -144,7 +144,7 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
 
     await message.answer(
         text=wish_text,
-        parse_mode="MarkdownV2",
+        parse_mode="Markdown",
         reply_markup=keyboards.again
     )
 
