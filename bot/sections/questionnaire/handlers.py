@@ -1,7 +1,10 @@
 from aiogram import Router, F, types, Bot
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
+from aiogram.enums import ParseMode
 # from bot.utils.gemini_api import generate_wish
+from aiogram.utils.text_decorations import markdown_decoration as md
 from typing import List, Optional
 from . import keyboards
 
@@ -34,11 +37,12 @@ async def generate_wish(questions: List[Question]) -> (str, str):
 Вказівки для створення історії:
 1. Створи захоплюючу історію (довжиною 1500-2000 символів), яка переплітає всі деталі з відповідей.
 2. Додай технічний гумор та програмістські жарти, пов'язані з наданою інформацією.
-3. Використовуй різні стилістики Markdown.
-4. Використовуй сучасні емодзі доречно (3-5 емодзі на абзац).
-5. Зроби історію динамічною - з несподіваними поворотами, можливо, з елементами обраного стилю розповіді.
-6. Включи відсилки до сучасних технологій, ШІ та програмування.
-7. Заверши історію потужним побажанням, яке поєднує особисті деталі з програмістською тематикою.
+3. Обовязково використовуй різні і багато стилістики Markdown.
+4. Встав мальнький блок коду.
+5. Використовуй сучасні емодзі доречно (3-5 емодзі на абзац).
+6. Зроби історію динамічною - з несподіваними поворотами, можливо, з елементами обраного стилю розповіді.
+7. Включи відсилки до сучасних технологій, ШІ та програмування.
+8. Заверши історію потужним побажанням, яке поєднує особисті деталі з програмістською тематикою.
 
 Стиль написання:
 - Дружній та енергійний тон
@@ -143,17 +147,28 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
     await message.answer("🎨 Генерую ваше персоналізоване привітання...")
     prompt, wish_text = await generate_wish(questions)
 
-    await message.answer(
-        text=wish_text,
-        parse_mode="Markdown",
-        reply_markup=keyboards.again
-    )
+    # wish_text = md.quote(wish_text)  # Екрануємо спеціальні символи
+
+    try:
+        await message.answer(
+            text=wish_text,
+            parse_mode="Markdown",  # Використовуємо MarkdownV2 для екранування
+            reply_markup=keyboards.again
+        )
+    except TelegramBadRequest as e:
+        await message.answer(
+            text='щось пішло не так і текст надішлеться без форматування(',
+            reply_markup=keyboards.again
+        )
+        await message.answer(
+            text=wish_text,
+            reply_markup=keyboards.again
+        )
 
     try:
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=prompt,
-            parse_mode="Markdown",
 
         )
     except Exception as e:
@@ -163,7 +178,6 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=wish_text,
-            parse_mode="Markdown",
 
         )
     except Exception as e:
