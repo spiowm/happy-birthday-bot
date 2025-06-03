@@ -31,7 +31,7 @@ async def generate_wish(questions: List[Question]) -> (str, str):
     prompt = f"""Ти - креативний письменник, який створює персоналізовані програмістські історії-привітання. 
 Використовуй інформацію нижче, щоб створити унікальне, веселе та надихаюче привітання:
 Питання: Як звати?
-Відповідь: Денис
+Відповідь: Ліля
 {questions_text}
 
 Вказівки для створення історії:
@@ -78,11 +78,11 @@ class QuestionnaireStates(StatesGroup):
 
 
 QUESTIONS = [
-    Question('favorite_language', '🛠 Яка мова програмування приносить тобі найбільше задоволення?'),
+    Question('favorite_language', '🐶 Якби мала добермана, як би назвала ?'),
     Question('dream_location', '🌍 Назви місце, де ти хотів би прокинутися завтра вранці?'),
     Question('favorite_movie', '🎥 З яким героєм фільму ти себе найбільше асоціюєш?'),
     Question('favorite_game', '🎮 Чим ти любиш займатися, коли хочеш відпочити від усього?'),
-    Question('coding_place', '🌈 Де ти найбільше любиш кодити? \n(Затишна кав\'ярня, офіс з командою, домашній setup з котом на колінах, чи може космічна станція?)'),
+    Question('coding_place', '🌈 Де ти найбільше любиш кодити? \n(Затишна кав\'ярня, домашній setup, чи може студпростір ?)'),
     Question('genre', '🎬 В якому стилі ти хочеш отримати своє привітання? \n(Епічне фентезі, кіберпанк, комедія, надихаюча історія успіху чи, може, романтична драма з багами в головній ролі?)')
 ]
 
@@ -143,21 +143,40 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
     for question in questions:
         question.answer_text = data.get(question.question_id, "Немає відповіді")
 
-    # Generate and send the wish
     await message.answer("🎨 Генерую ваше персоналізоване привітання...")
     prompt, wish_text = await generate_wish(questions)
 
-    # wish_text = md.quote(wish_text)  # Екрануємо спеціальні символи
+    def escape_markdown(text: str) -> str:
+        escape_chars = r"_*[]()~`>#+-=|{}.!"
+        return ''.join(['\\' + c if c in escape_chars else c for c in text])
 
+    # 1. Спробувати надіслати як є
     try:
         await message.answer(
             text=wish_text,
-            parse_mode="Markdown",  # Використовуємо MarkdownV2 для екранування
+            parse_mode="Markdown",
             reply_markup=keyboards.again
         )
-    except TelegramBadRequest as e:
+        sent = True
+    except TelegramBadRequest:
+        sent = False
+
+    # 2. Якщо не вдалося — спробувати з екрануванням
+    if not sent:
+        try:
+            await message.answer(
+                text=escape_markdown(wish_text),
+                parse_mode="Markdown",
+                reply_markup=keyboards.again
+            )
+            sent = True
+        except TelegramBadRequest:
+            sent = False
+
+    # 3. Якщо все одно не вдалося — надсилаємо без форматування
+    if not sent:
         await message.answer(
-            text='щось пішло не так і текст надішлеться без форматування(',
+            text='Щось пішло не так, надсилаю привітання без форматування:',
             reply_markup=keyboards.again
         )
         await message.answer(
@@ -165,16 +184,14 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
             reply_markup=keyboards.again
         )
 
+    # Адміну надсилаємо як і раніше
     try:
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=prompt,
             parse_mode="Markdown",
         )
-    except TelegramBadRequest as e:
-        await message.answer(
-            text='щось пішло не так і текст надішлеться без форматування(',
-        )
+    except TelegramBadRequest:
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=prompt,
@@ -186,11 +203,7 @@ async def process_genre(message: types.Message, state: FSMContext, bot: Bot):
             text=wish_text,
             parse_mode="Markdown",
         )
-    except TelegramBadRequest as e:
-        await message.answer(
-            text='щось пішло не так і текст надішлеться без форматування(',
-            reply_markup=keyboards.again
-        )
+    except TelegramBadRequest:
         await bot.send_message(
             chat_id=str(Config.ADMIN_TG_ID),
             text=wish_text,
